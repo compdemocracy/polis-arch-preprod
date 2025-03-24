@@ -27,6 +27,7 @@ jobs:
           zip -r deployment.zip appspec.yml scripts/* docker-compose.yml
   
       - name: Upload deployment package to S3
+        working-directory: polis
         run: |
           aws s3 cp deployment.zip s3://preprod-polis-deployment-packages-939472767309-us-east-1/deployments/deployment.zip
   
