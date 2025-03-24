@@ -278,46 +278,46 @@ EOF`,
     db.connections.allowFrom(webInstance, ec2.Port.tcp(5432), 'Allow database access from web instance');
     db.connections.allowFrom(mathInstance, ec2.Port.tcp(5432), 'Allow database access from math instance');
 
-    // const lb = new elbv2.ApplicationLoadBalancer(this, 'PreprodLb', {
-    //   vpc,
-    //   internetFacing: true,
-    //   securityGroup: lbSecurityGroup,
-    //   idleTimeout: cdk.Duration.seconds(300),
-    // });
+    const lb = new elbv2.ApplicationLoadBalancer(this, 'PreprodLb', {
+      vpc,
+      internetFacing: true,
+      securityGroup: lbSecurityGroup,
+      idleTimeout: cdk.Duration.seconds(300),
+    });
 
-    // const asgWeb = new autoscaling.AutoScalingGroup(this, 'PreprodAsg', {
-    //   vpc,
-    //   launchTemplate: webLaunchTemplate,
-    //   minCapacity: 1,
-    //   maxCapacity: 2,
-    //   vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-    //   healthCheck: autoscaling.HealthCheck.elb({grace: cdk.Duration.minutes(5)})
-    // });
+    const asgWeb = new autoscaling.AutoScalingGroup(this, 'PreprodAsg', {
+      vpc,
+      launchTemplate: webLaunchTemplate,
+      minCapacity: 1,
+      maxCapacity: 2,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      healthCheck: autoscaling.HealthCheck.elb({grace: cdk.Duration.minutes(5)})
+    });
 
-    // const webTargetGroup = new elbv2.ApplicationTargetGroup(this, 'PreprodWebAppTargetGroup', {
-    //   vpc,
-    //   port: 80,
-    //   protocol: elbv2.ApplicationProtocol.HTTP,
-    //   targets: [asgWeb],
-    // });
+    const webTargetGroup = new elbv2.ApplicationTargetGroup(this, 'PreprodWebAppTargetGroup', {
+      vpc,
+      port: 80,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      targets: [asgWeb],
+    });
 
-    // const httpListener = lb.addListener('PreprodHttpListener', {
-    //   port: 80,
-    //   open: true,
-    //   defaultTargetGroups: [webTargetGroup],
-    // });
+    const httpListener = lb.addListener('PreprodHttpListener', {
+      port: 80,
+      open: true,
+      defaultTargetGroups: [webTargetGroup],
+    });
 
-    // const certificate = new acm.Certificate(this, 'PreprodWebAppCertificate', {
-    //   domainName: 'preprod.pol.is',
-    //   validation: acm.CertificateValidation.fromDns(),
-    // });
+    const certificate = new acm.Certificate(this, 'PreprodWebAppCertificate', {
+      domainName: 'preprod.pol.is',
+      validation: acm.CertificateValidation.fromDns(),
+    });
 
-    // const httpsListener = lb.addListener('PreprodHttpsListener', {
-    //   port: 443,
-    //   certificates: [certificate],
-    //   open: true,
-    //   defaultTargetGroups: [webTargetGroup],
-    // });
+    const httpsListener = lb.addListener('PreprodHttpsListener', {
+      port: 443,
+      certificates: [certificate],
+      open: true,
+      defaultTargetGroups: [webTargetGroup],
+    });
 
     const webAppEnvVarsSecret = new secretsmanager.Secret(this, 'PreprodWebAppEnvVarsSecret', {
       secretName: 'preprod-polis-web-app-env-vars',
