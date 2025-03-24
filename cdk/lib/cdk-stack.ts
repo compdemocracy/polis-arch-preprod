@@ -291,6 +291,11 @@ EOF`,
       deploymentConfig: codedeploy.ServerDeploymentConfig.ONE_AT_A_TIME,
       role: codeDeployRole,
       installAgent: true,
+      autoRollback: {
+        failedDeployment: true,
+        stoppedDeployment: true,
+        deploymentInAlarm: true,
+      },
     });
 
     db.connections.allowFrom(webInstance, ec2.Port.tcp(5432), 'Allow database access from web instance');

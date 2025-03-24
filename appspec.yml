@@ -5,8 +5,6 @@ files:
     destination: /opt/polis/appspec.yml
   - source: scripts/
     destination: /opt/polis/scripts/
-  - source: docker-compose.yml
-    destination: /opt/polis/docker-compose.yml
 hooks:
   BeforeInstall:
     - location: scripts/before_install.sh
