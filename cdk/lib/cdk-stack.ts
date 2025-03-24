@@ -266,10 +266,28 @@ EOF`,
 
     deploymentBucket.grantRead(instanceRole);
 
+    const asgWeb = new autoscaling.AutoScalingGroup(this, 'PreprodAsg', {
+      vpc,
+      launchTemplate: webLaunchTemplate,
+      minCapacity: 1,
+      maxCapacity: 2,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      healthCheck: autoscaling.HealthCheck.elb({grace: cdk.Duration.minutes(5)})
+    });
+    const asgMathWorker = new autoscaling.AutoScalingGroup(this, 'AsgMathWorker', {
+      vpc,
+      launchTemplate: mathWorkerLaunchTemplate,
+      minCapacity: 1,
+      maxCapacity: 2,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PUBLIC,
+      },
+      healthCheck: autoscaling.HealthCheck.ec2({ grace: cdk.Duration.minutes(5) }),
+    });
     const deploymentGroup = new codedeploy.ServerDeploymentGroup(this, 'PreprodDeploymentGroup', {
       application,
       deploymentGroupName: 'PreprodPolisDeploymentGroup',
-      autoScalingGroups: [], //removed asg
+      autoScalingGroups: [asgWeb, asgMathWorker],
       deploymentConfig: codedeploy.ServerDeploymentConfig.ONE_AT_A_TIME,
       role: codeDeployRole,
       installAgent: true,
@@ -285,14 +303,6 @@ EOF`,
       idleTimeout: cdk.Duration.seconds(300),
     });
 
-    const asgWeb = new autoscaling.AutoScalingGroup(this, 'PreprodAsg', {
-      vpc,
-      launchTemplate: webLaunchTemplate,
-      minCapacity: 1,
-      maxCapacity: 2,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-      healthCheck: autoscaling.HealthCheck.elb({grace: cdk.Duration.minutes(5)})
-    });
 
     const webTargetGroup = new elbv2.ApplicationTargetGroup(this, 'PreprodWebAppTargetGroup', {
       vpc,
