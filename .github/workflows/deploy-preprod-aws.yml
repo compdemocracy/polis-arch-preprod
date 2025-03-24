@@ -22,18 +22,19 @@ jobs:
           aws-region: us-east-1
 
       - name: Create deployment package
+        working-directory: polis
         run: |
           zip -r deployment.zip appspec.yml scripts/* docker-compose.yml
   
       - name: Upload deployment package to S3
         run: |
-          aws s3 cp deployment.zip s3://polis-deployment-packages-939472767309-us-east-1/deployments/deployment.zip
+          aws s3 cp deployment.zip s3://preprod-polis-deployment-packages-939472767309-us-east-1/deployments/deployment.zip
   
       - name: Create CodeDeploy deployment
         run: |
           aws deploy create-deployment \
-            --application-name PolisApplication \
-            --deployment-group-name PolisDeploymentGroup \
+            --application-name PreprodPolisApplication \
+            --deployment-group-name PreprodPolisDeploymentGroup \
             --deployment-config-name CodeDeployDefault.OneAtATime \
-            --revision revisionType=S3,s3Location="{bucket=polis-deployment-packages-939472767309-us-east-1,key=deployments/deployment.zip,bundleType=zip}" \
+            --revision revisionType=S3,s3Location="{bucket=preprod-polis-deployment-packages-939472767309-us-east-1,key=deployments/deployment.zip,bundleType=zip}" \
             --region us-east-1
