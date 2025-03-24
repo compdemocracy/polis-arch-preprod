@@ -97,11 +97,11 @@ export class PreprodPolisStack extends cdk.Stack {
     const instanceRole = new iam.Role(this, 'PreprodInstanceRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
       managedPolicies: [
-          iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'),
-          iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonEC2RoleforAWSCodeDeploy'),
-          iam.ManagedPolicy.fromAwsManagedPolicyName('SecretsManagerReadWrite'),
-          iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonEC2ContainerRegistryReadOnly'),
-          iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLogsFullAccess')
+        iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'),
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonEC2RoleforAWSCodeDeploy'),
+        iam.ManagedPolicy.fromAwsManagedPolicyName('SecretsManagerReadWrite'),
+        iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonEC2ContainerRegistryReadOnly'),
+        iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLogsFullAccess')
       ],
     });
 
@@ -113,7 +113,7 @@ export class PreprodPolisStack extends cdk.Stack {
     const codeDeployRole = new iam.Role(this, 'PreprodCodeDeployRole', {
       assumedBy: new iam.ServicePrincipal('codedeploy.amazonaws.com'),
       managedPolicies: [
-          iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSCodeDeployRole'),
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSCodeDeployRole'),
       ],
     });
 
@@ -230,25 +230,25 @@ EOF`,
     });
 
     const webInstance = new ec2.Instance(this, 'PreprodWebInstance', {
-        vpc,
-        instanceType: instanceTypeWeb,
-        machineImage: machineImageWeb,
-        securityGroup: webSecurityGroup,
-        keyPair: props.enableSSHAccess ? webKeyPair : undefined,
-        role: instanceRole,
-        userData: webLaunchTemplate.userData,
-        vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      vpc,
+      instanceType: instanceTypeWeb,
+      machineImage: machineImageWeb,
+      securityGroup: webSecurityGroup,
+      keyPair: props.enableSSHAccess ? webKeyPair : undefined,
+      role: instanceRole,
+      userData: webLaunchTemplate.userData,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
     });
 
     const mathInstance = new ec2.Instance(this, 'PreprodMathWorkerInstance', {
-        vpc,
-        instanceType: instanceTypeMathWorker,
-        machineImage: machineImageMathWorker,
-        securityGroup: mathWorkerSecurityGroup,
-        keyPair: props.enableSSHAccess ? mathWorkerKeyPair : undefined,
-        role: instanceRole,
-        userData: mathWorkerLaunchTemplate.userData,
-        vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      vpc,
+      instanceType: instanceTypeMathWorker,
+      machineImage: machineImageMathWorker,
+      securityGroup: mathWorkerSecurityGroup,
+      keyPair: props.enableSSHAccess ? mathWorkerKeyPair : undefined,
+      role: instanceRole,
+      userData: mathWorkerLaunchTemplate.userData,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
     });
 
     const application = new codedeploy.ServerApplication(this, 'PreprodCodeDeployApplication', {
@@ -272,7 +272,7 @@ EOF`,
       minCapacity: 1,
       maxCapacity: 2,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-      healthCheck: autoscaling.HealthCheck.elb({grace: cdk.Duration.minutes(5)})
+      healthCheck: autoscaling.HealthCheck.elb({grace: cdk.Duration.minutes(15)})
     });
     const asgMathWorker = new autoscaling.AutoScalingGroup(this, 'AsgMathWorker', {
       vpc,
@@ -282,7 +282,7 @@ EOF`,
       vpcSubnets: {
         subnetType: ec2.SubnetType.PUBLIC,
       },
-      healthCheck: autoscaling.HealthCheck.ec2({ grace: cdk.Duration.minutes(5) }),
+      healthCheck: autoscaling.HealthCheck.ec2({ grace: cdk.Duration.minutes(15) }),
     });
     const deploymentGroup = new codedeploy.ServerDeploymentGroup(this, 'PreprodDeploymentGroup', {
       application,
@@ -309,6 +309,13 @@ EOF`,
       port: 80,
       protocol: elbv2.ApplicationProtocol.HTTP,
       targets: [asgWeb],
+      healthCheck: {
+        path: "/api/v3/testConnection",
+        interval: cdk.Duration.seconds(300),
+        healthyThresholdCount: 2,
+        unhealthyThresholdCount: 10,
+        timeout: cdk.Duration.seconds(10),
+      }
     });
 
     const httpListener = lb.addListener('PreprodHttpListener', {

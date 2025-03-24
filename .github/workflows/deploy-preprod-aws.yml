@@ -8,12 +8,6 @@ jobs:
     environment: production
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          repository: "compdemocracy/polis"
-          path: polis
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -22,12 +16,10 @@ jobs:
           aws-region: us-east-1
 
       - name: Create deployment package
-        working-directory: polis
         run: |
-          zip -r deployment.zip appspec.yml scripts/* docker-compose.yml
+          zip -r deployment.zip appspec.yml scripts/*
   
       - name: Upload deployment package to S3
-        working-directory: polis
         run: |
           aws s3 cp deployment.zip s3://preprod-polis-deployment-packages-939472767309-us-east-1/deployments/deployment.zip
   
