@@ -57,7 +57,7 @@ export class PreprodPolisStack extends cdk.Stack {
 
     const instanceTypeWeb = ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MEDIUM);
     const machineImageWeb = new ec2.AmazonLinuxImage({ generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2023 });
-    const instanceTypeMathWorker = ec2.InstanceType.of(ec2.InstanceClass.R8G, ec2.InstanceSize.XLARGE);
+    const instanceTypeMathWorker = ec2.InstanceType.of(ec2.InstanceClass.R8G, ec2.InstanceSize.MEDIUM);
     const machineImageMathWorker = new ec2.AmazonLinuxImage({
       generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2023,
       cpuType: ec2.AmazonLinuxCpuType.ARM_64,
@@ -141,7 +141,7 @@ export class PreprodPolisStack extends cdk.Stack {
 
     const db = new rds.DatabaseInstance(this, 'PreprodDatabase', {
       engine: rds.DatabaseInstanceEngine.postgres({version: rds.PostgresEngineVersion.VER_17 }),
-      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.LARGE),
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.SMALL),
       vpc,
       allocatedStorage: 20,
       storageType: rds.StorageType.GP2,
@@ -229,28 +229,6 @@ EOF`,
       role: instanceRole,
     });
 
-    const webInstance = new ec2.Instance(this, 'PreprodWebInstance', {
-      vpc,
-      instanceType: instanceTypeWeb,
-      machineImage: machineImageWeb,
-      securityGroup: webSecurityGroup,
-      keyPair: props.enableSSHAccess ? webKeyPair : undefined,
-      role: instanceRole,
-      userData: webLaunchTemplate.userData,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-    });
-
-    const mathInstance = new ec2.Instance(this, 'PreprodMathWorkerInstance', {
-      vpc,
-      instanceType: instanceTypeMathWorker,
-      machineImage: machineImageMathWorker,
-      securityGroup: mathWorkerSecurityGroup,
-      keyPair: props.enableSSHAccess ? mathWorkerKeyPair : undefined,
-      role: instanceRole,
-      userData: mathWorkerLaunchTemplate.userData,
-      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
-    });
-
     const application = new codedeploy.ServerApplication(this, 'PreprodCodeDeployApplication', {
       applicationName: 'PreprodPolisApplication',
     });
@@ -291,15 +269,10 @@ EOF`,
       deploymentConfig: codedeploy.ServerDeploymentConfig.ONE_AT_A_TIME,
       role: codeDeployRole,
       installAgent: true,
-      autoRollback: {
-        failedDeployment: true,
-        stoppedDeployment: true,
-        deploymentInAlarm: true,
-      },
     });
 
-    db.connections.allowFrom(webInstance, ec2.Port.tcp(5432), 'Allow database access from web instance');
-    db.connections.allowFrom(mathInstance, ec2.Port.tcp(5432), 'Allow database access from math instance');
+    db.connections.allowFrom(asgWeb, ec2.Port.tcp(5432), 'Allow database access from web instance');
+    db.connections.allowFrom(asgMathWorker, ec2.Port.tcp(5432), 'Allow database access from math instance');
 
     const lb = new elbv2.ApplicationLoadBalancer(this, 'PreprodLb', {
       vpc,
@@ -346,11 +319,11 @@ EOF`,
       description: 'Environment variables for the Preprod Polis web application',
     });
 
-    webInstance.node.addDependency(logGroup);
-    webInstance.node.addDependency(webAppEnvVarsSecret);
-    mathInstance.node.addDependency(logGroup);
-    mathInstance.node.addDependency(webAppEnvVarsSecret);
-    webInstance.node.addDependency(db);
-    mathInstance.node.addDependency(db);
+    asgWeb.node.addDependency(logGroup);
+    asgWeb.node.addDependency(webAppEnvVarsSecret);
+    asgMathWorker.node.addDependency(logGroup);
+    asgMathWorker.node.addDependency(webAppEnvVarsSecret);
+    asgWeb.node.addDependency(db);
+    asgMathWorker.node.addDependency(db);
   }
 }
